@@ -1,0 +1,1 @@
+export function Loading(){return <div className="state-box">Carregando dados…</div>} export function ErrorBox({message}:{message:string}){return <div className="state-box error">{message}</div>} export function Empty({label='Nenhum registro encontrado.'}:{label?:string}){return <div className="state-box">{label}</div>}

@@ -1,0 +1,7 @@
+export type Company={id:number;external_id?:string;trade_name:string;legal_name?:string;country?:string;state?:string;city?:string;segment?:string;website?:string;priority:string;status:string;score:number;notes?:string};
+export type Opportunity={id:number;company_id:number;company?:Company;external_id?:string;title:string;type?:string;potential_service?:string;potential_value:number;status:string;probability:number;score:number;next_step_at?:string;summary?:string;source_url?:string};
+export type Contact={id:number;company_id:number;company?:Company;name:string;role?:string;email?:string;phone?:string;decision_maker:boolean};
+export type Activity={id:number;company_id?:number;opportunity_id?:number;company?:Company;opportunity?:Opportunity;type:string;scheduled_at?:string;description:string;result?:string;status:string};
+export type Work={id:number;company_id?:number;company?:Company;name:string;type?:string;contractor?:string;city?:string;state_country?:string;contract_value?:number;status?:string;potential?:string;notes?:string};
+export type Bid={id:number;agency:string;process_number?:string;object:string;city?:string;state_country?:string;published_at?:string;deadline_at?:string;estimated_value?:number;status:string;source_url?:string};
+export type Evidence={id:number;company_id?:number;opportunity_id?:number;company?:Company;opportunity?:Opportunity;source_type?:string;title:string;description?:string;published_at?:string;url?:string;confidence?:number;score_impact:number};
