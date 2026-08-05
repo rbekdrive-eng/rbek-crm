@@ -1,58 +1,51 @@
 # R.BEK Intelligence Platform — V1
 
-Aplicação web própria da R.BEK para inteligência comercial em engenharia.
+Aplicação web real para inteligência comercial de engenharia, publicada em `crm.rbek.eng.br`.
 
-## Endereços planejados
+## Entregue nesta V1
+- autenticação por token com Laravel Sanctum;
+- dashboard executivo com indicadores reais do PostgreSQL;
+- CRUD de empresas e oportunidades;
+- pipeline Kanban com atualização de status por arrastar e soltar;
+- consultas de contatos, atividades, obras, licitações e evidências;
+- agenda comercial;
+- importação inicial do Banco de Dados Mestre;
+- frontend responsivo Next.js/TypeScript;
+- API Laravel/PostgreSQL;
+- Dockerfiles e configuração Railway.
 
-- Aplicação: `https://crm.rbek.eng.br`
-- API: `https://api.crm.rbek.eng.br`
-- Hospedagem: Railway
-- Banco: PostgreSQL Railway
+## Primeiro acesso
+- E-mail: `admin@rbek.eng.br`
+- Senha inicial: `Rbek@2026`
 
-## O que já está neste pacote
-
-- Interface profissional e responsiva em Next.js/TypeScript.
-- Login visual, dashboard executivo, empresas, oportunidades, pipeline Kanban, obras, evidências, licitações, agenda e configurações.
-- Dados reais importados da planilha mestre: 21 empresas, 21 oportunidades, 21 obras e 21 evidências.
-- API Laravel com endpoint de saúde, dashboard e CRUD de empresas.
-- Banco PostgreSQL com migrations para empresas, oportunidades, obras, evidências, contatos, atividades e licitações.
-- Seeder que importa automaticamente os dados atuais.
-- Dockerfiles e configurações para Railway.
-
-## Estrutura
-
-- `frontend/`: Next.js.
-- `backend/`: Laravel API.
-- `branding/`: logotipos R.BEK.
-- `docs/`: implantação.
-
-## Publicação no GitHub
-
-1. Descompacte este ZIP no computador.
-2. No repositório `rbekdrive-eng/rbek-crm`, clique em **uploading an existing file**.
-3. Arraste **todo o conteúdo de dentro da pasta `rbek-crm-v1`**, e não o ZIP.
-4. Em **Commit changes**, escreva `feat: primeira versão da plataforma`.
-5. Clique em **Commit changes**.
-
-Para muitos arquivos, o GitHub Desktop é mais seguro. Instale-o, escolha **Add an Existing Repository from your Local Drive**, selecione a pasta descompactada, publique no repositório `rbek-crm` e faça o primeiro commit.
+**Altere a senha após o primeiro acesso.** Em produção, defina `ADMIN_INITIAL_PASSWORD` no backend antes do primeiro seed.
 
 ## Railway — serviços
+Crie 3 serviços no mesmo projeto:
+1. PostgreSQL (já criado)
+2. Backend a partir do repositório, Root Directory `/backend`
+3. Frontend a partir do repositório, Root Directory `/frontend`
 
-Crie dois serviços a partir do mesmo repositório:
+### Backend — variáveis
+- `DATABASE_URL=${{Postgres.DATABASE_URL}}`
+- `APP_ENV=production`
+- `APP_DEBUG=false`
+- `APP_URL=https://api.crm.rbek.eng.br`
+- `FRONTEND_URL=https://crm.rbek.eng.br`
+- `APP_KEY` (gere com `php artisan key:generate --show` ou use uma chave base64 válida)
+- `ADMIN_INITIAL_PASSWORD` (senha temporária forte)
 
-### Frontend
-- Root Directory: `/frontend`
-- Dockerfile: `Dockerfile`
-- Variável: `NEXT_PUBLIC_API_URL=https://api.crm.rbek.eng.br/api`
-- Domínio: `crm.rbek.eng.br`
+### Frontend — variável
+- `NEXT_PUBLIC_API_URL=https://api.crm.rbek.eng.br/api`
 
-### Backend
-- Root Directory: `/backend`
-- Dockerfile: `Dockerfile`
-- Referencie o PostgreSQL pela variável `DATABASE_URL`.
-- Variáveis mínimas: `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://api.crm.rbek.eng.br`, `FRONTEND_URL=https://crm.rbek.eng.br`.
-- Domínio: `api.crm.rbek.eng.br`
+### Domínios
+- Frontend: `crm.rbek.eng.br`
+- Backend: `api.crm.rbek.eng.br`
 
-## Observação de segurança
-
-O login incluído no frontend demonstra a experiência visual. Antes de liberar usuários, conecte-o ao Laravel Sanctum e substitua a senha demonstrativa. Não publique credenciais no GitHub.
+## Desenvolvimento local
+```bash
+cp .env.example .env
+docker compose up --build
+```
+Frontend: `http://localhost:3000`  
+Backend: `http://localhost:8000`
