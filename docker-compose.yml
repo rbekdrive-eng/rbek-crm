@@ -1,0 +1,32 @@
+services:
+  frontend:
+    build: ./frontend
+    ports: ["3000:3000"]
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api
+    depends_on: [backend]
+  backend:
+    build: ./backend
+    ports: ["8080:8000"]
+    environment:
+      APP_ENV: local
+      APP_KEY: base64:REPLACE_ON_DEPLOY
+      APP_URL: http://localhost:8080
+      FRONTEND_URL: http://localhost:3000
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: rbek
+      DB_USERNAME: rbek
+      DB_PASSWORD: rbek
+    depends_on: [postgres]
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: rbek
+      POSTGRES_USER: rbek
+      POSTGRES_PASSWORD: rbek
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    ports: ["5432:5432"]
+volumes:
+  pgdata:
