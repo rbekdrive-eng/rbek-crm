@@ -1,4 +1,4 @@
-<<?php
+<?php
 
 namespace App\Models;
 
@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Evidence extends Model
-{protected $table = 'evidences';
+{
     use HasFactory;
 
     protected $table = 'evidences';
@@ -39,6 +39,10 @@ class Evidence extends Model
     }
 
     public function opportunity()
+    {
+        return $this->belongsTo(Opportunity::class);
+    }
+}
     {
         return $this->belongsTo(Opportunity::class);
     }
