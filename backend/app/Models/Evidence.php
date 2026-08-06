@@ -43,7 +43,3 @@ class Evidence extends Model
         return $this->belongsTo(Opportunity::class);
     }
 }
-    {
-        return $this->belongsTo(Opportunity::class);
-    }
-}
