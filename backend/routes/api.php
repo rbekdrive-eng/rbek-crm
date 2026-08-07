@@ -1,4 +1,98 @@
 <?php
-use Illuminate\Support\Facades\Route;use App\Http\Controllers\Api\{AuthController,DashboardController,CompanyController,OpportunityController,ContactController,ActivityController,WorkController,BidController,EvidenceController};
-Route::post('/login',[AuthController::class,'login']);
-Route::middleware('auth:sanctum')->group(function(){Route::get('/me',[AuthController::class,'me']);Route::post('/logout',[AuthController::class,'logout']);Route::get('/dashboard',DashboardController::class);Route::apiResource('companies',CompanyController::class);Route::apiResource('opportunities',OpportunityController::class);Route::patch('/opportunities/{id}/status',[OpportunityController::class,'status']);Route::apiResource('contacts',ContactController::class);Route::apiResource('activities',ActivityController::class);Route::apiResource('works',WorkController::class);Route::apiResource('bids',BidController::class);Route::apiResource('evidences',EvidenceController::class);});
+
+use Illuminate\Support\Facades\Route;
+
+use App\Http\Controllers\Api\{
+    AuthController,
+    DashboardController,
+    CompanyController,
+    OpportunityController,
+    ContactController,
+    ActivityController,
+    WorkController,
+    BidController,
+    EvidenceController
+};
+
+Route::post(
+    '/login',
+    [AuthController::class, 'login']
+);
+
+Route::middleware('auth:sanctum')->group(
+    function () {
+        Route::get(
+            '/me',
+            [AuthController::class, 'me']
+        );
+
+        Route::post(
+            '/logout',
+            [AuthController::class, 'logout']
+        );
+
+        Route::get(
+            '/dashboard',
+            DashboardController::class
+        );
+
+        Route::post(
+            '/companies/recalculate-scores',
+            [
+                CompanyController::class,
+                'recalculateAll',
+            ]
+        );
+
+        Route::post(
+            '/companies/{id}/recalculate-score',
+            [
+                CompanyController::class,
+                'recalculate',
+            ]
+        );
+
+        Route::apiResource(
+            'companies',
+            CompanyController::class
+        );
+
+        Route::apiResource(
+            'opportunities',
+            OpportunityController::class
+        );
+
+        Route::patch(
+            '/opportunities/{id}/status',
+            [
+                OpportunityController::class,
+                'status',
+            ]
+        );
+
+        Route::apiResource(
+            'contacts',
+            ContactController::class
+        );
+
+        Route::apiResource(
+            'activities',
+            ActivityController::class
+        );
+
+        Route::apiResource(
+            'works',
+            WorkController::class
+        );
+
+        Route::apiResource(
+            'bids',
+            BidController::class
+        );
+
+        Route::apiResource(
+            'evidences',
+            EvidenceController::class
+        );
+    }
+);
