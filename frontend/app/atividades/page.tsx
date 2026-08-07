@@ -1,43 +1,12 @@
 'use client';
 
 import AppShell from '@/components/AppShell';
-import SimpleEntityPage from '@/components/SimpleEntityPage';
+import ActivityManager from '@/components/ActivityManager';
 
 export default function Page() {
   return (
     <AppShell>
-      <SimpleEntityPage
-        title="Atividades e follow-ups"
-        subtitle="Agenda comercial, resultados e próximos passos."
-        endpoint="/activities"
-        columns={[
-          {
-            key: 'type',
-            label: 'Tipo',
-          },
-          {
-            key: 'company',
-            label: 'Empresa',
-            render: (x: any) => x.company?.trade_name || '—',
-          },
-          {
-            key: 'description',
-            label: 'Descrição',
-          },
-          {
-            key: 'scheduled_at',
-            label: 'Data',
-            render: (x: any) =>
-              x.scheduled_at
-                ? new Date(x.scheduled_at).toLocaleDateString('pt-BR')
-                : '—',
-          },
-          {
-            key: 'status',
-            label: 'Status',
-          },
-        ]}
-      />
+      <ActivityManager />
     </AppShell>
   );
 }
