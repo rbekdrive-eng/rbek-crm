@@ -42,7 +42,6 @@ const emptyForm: ContactForm = {
 
 function companyName(company?: Company | null) {
   if (!company) return '—';
-
   return company.trade_name || company.legal_name || '—';
 }
 
@@ -95,9 +94,7 @@ export default function ContactManager() {
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase();
 
-    if (!search) {
-      return items;
-    }
+    if (!search) return items;
 
     return items.filter((contact) => {
       const text = [
@@ -213,15 +210,46 @@ export default function ContactManager() {
 
   return (
     <>
-      <div className="page-header">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 24,
+          marginBottom: 28,
+        }}
+      >
         <div>
-          <div className="eyebrow">
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: '0.12em',
+              color: '#c78310',
+              marginBottom: 8,
+            }}
+          >
             INTELIGÊNCIA COMERCIAL
           </div>
 
-          <h1>Contatos e decisores</h1>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 34,
+              lineHeight: 1.15,
+              color: '#202b33',
+            }}
+          >
+            Contatos e decisores
+          </h1>
 
-          <p>
+          <p
+            style={{
+              margin: '10px 0 0',
+              fontSize: 18,
+              color: '#6d7479',
+            }}
+          >
             Pessoas-chave vinculadas às empresas monitoradas.
           </p>
         </div>
@@ -230,20 +258,51 @@ export default function ContactManager() {
           type="button"
           className="btn primary"
           onClick={newContact}
+          style={{
+            flexShrink: 0,
+            minHeight: 48,
+            paddingLeft: 22,
+            paddingRight: 22,
+          }}
         >
           + Novo contato
         </button>
       </div>
 
-      <div className="toolbar">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 20,
+          marginBottom: 18,
+        }}
+      >
         <input
           type="text"
           placeholder="Buscar contato, empresa, cargo ou e-mail..."
           value={query}
           onChange={(event) => setQuery(event.target.value)}
+          style={{
+            width: '100%',
+            maxWidth: 460,
+            minHeight: 48,
+            padding: '0 16px',
+            border: '1px solid #d9dee2',
+            borderRadius: 12,
+            background: '#fff',
+            fontSize: 16,
+            outline: 'none',
+          }}
         />
 
-        <div className="muted">
+        <div
+          style={{
+            color: '#737b80',
+            fontSize: 14,
+            whiteSpace: 'nowrap',
+          }}
+        >
           {filtered.length}{' '}
           {filtered.length === 1 ? 'contato' : 'contatos'}
         </div>
@@ -256,96 +315,228 @@ export default function ContactManager() {
       ) : !filtered.length ? (
         <Empty label="Nenhum contato encontrado." />
       ) : (
-        <div className="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>NOME</th>
-                <th>EMPRESA</th>
-                <th>CARGO</th>
-                <th>E-MAIL</th>
-                <th>TELEFONE</th>
-                <th>DECISOR</th>
-                <th></th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {filtered.map((contact) => (
-                <tr key={contact.id}>
-                  <td>
-                    <strong>{contact.name}</strong>
-                  </td>
-
-                  <td>
-                    {companyName(contact.company)}
-                  </td>
-
-                  <td>
-                    {contact.role || '—'}
-                  </td>
-
-                  <td>
-                    {contact.email ? (
-                      <a href={`mailto:${contact.email}`}>
-                        {contact.email}
-                      </a>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-
-                  <td>
-                    {contact.phone ? (
-                      <a href={`tel:${contact.phone}`}>
-                        {contact.phone}
-                      </a>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-
-                  <td>
-                    {contact.decision_maker ? (
-                      <span className="badge success">
-                        Sim
-                      </span>
-                    ) : (
-                      <span className="badge">
-                        Não
-                      </span>
-                    )}
-                  </td>
-
-                  <td>
-                    <div
+        <div
+          style={{
+            background: '#fff',
+            border: '1px solid #e0e4e7',
+            borderRadius: 18,
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              overflowX: 'auto',
+            }}
+          >
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                tableLayout: 'fixed',
+              }}
+            >
+              <thead>
+                <tr>
+                  {[
+                    ['NOME', '19%'],
+                    ['EMPRESA', '22%'],
+                    ['CARGO', '16%'],
+                    ['E-MAIL', '17%'],
+                    ['TELEFONE', '12%'],
+                    ['DECISOR', '7%'],
+                    ['', '7%'],
+                  ].map(([label, width]) => (
+                    <th
+                      key={`${label}-${width}`}
                       style={{
-                        display: 'flex',
-                        gap: 12,
-                        justifyContent: 'flex-end',
+                        width,
+                        padding: '18px 16px',
+                        borderBottom: '1px solid #e4e7e9',
+                        textAlign: 'left',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        letterSpacing: '0.04em',
+                        color: '#667077',
+                        verticalAlign: 'middle',
                       }}
                     >
-                      <button
-                        type="button"
-                        className="link-button"
-                        onClick={() => editContact(contact)}
-                      >
-                        Editar
-                      </button>
-
-                      <button
-                        type="button"
-                        className="link-button"
-                        onClick={() => deleteContact(contact.id)}
-                      >
-                        Excluir
-                      </button>
-                    </div>
-                  </td>
+                      {label}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody>
+                {filtered.map((contact) => (
+                  <tr key={contact.id}>
+                    <td
+                      style={{
+                        padding: '18px 16px',
+                        borderBottom: '1px solid #edf0f2',
+                        verticalAlign: 'middle',
+                      }}
+                    >
+                      <strong
+                        style={{
+                          color: '#202b33',
+                          fontSize: 15,
+                        }}
+                      >
+                        {contact.name}
+                      </strong>
+                    </td>
+
+                    <td
+                      style={{
+                        padding: '18px 16px',
+                        borderBottom: '1px solid #edf0f2',
+                        verticalAlign: 'middle',
+                        color: '#39444b',
+                        fontSize: 14,
+                      }}
+                    >
+                      {companyName(contact.company)}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: '18px 16px',
+                        borderBottom: '1px solid #edf0f2',
+                        verticalAlign: 'middle',
+                        color: '#39444b',
+                        fontSize: 14,
+                      }}
+                    >
+                      {contact.role || '—'}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: '18px 16px',
+                        borderBottom: '1px solid #edf0f2',
+                        verticalAlign: 'middle',
+                        fontSize: 14,
+                      }}
+                    >
+                      {contact.email ? (
+                        <a
+                          href={`mailto:${contact.email}`}
+                          style={{
+                            color: '#39444b',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          {contact.email}
+                        </a>
+                      ) : (
+                        <span style={{ color: '#8a9297' }}>—</span>
+                      )}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: '18px 16px',
+                        borderBottom: '1px solid #edf0f2',
+                        verticalAlign: 'middle',
+                        fontSize: 14,
+                      }}
+                    >
+                      {contact.phone ? (
+                        <a
+                          href={`tel:${contact.phone}`}
+                          style={{
+                            color: '#39444b',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          {contact.phone}
+                        </a>
+                      ) : (
+                        <span style={{ color: '#8a9297' }}>—</span>
+                      )}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: '18px 16px',
+                        borderBottom: '1px solid #edf0f2',
+                        verticalAlign: 'middle',
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: 42,
+                          padding: '5px 10px',
+                          borderRadius: 999,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          background: contact.decision_maker
+                            ? '#e7f6eb'
+                            : '#f1f3f4',
+                          color: contact.decision_maker
+                            ? '#25733b'
+                            : '#697177',
+                        }}
+                      >
+                        {contact.decision_maker ? 'Sim' : 'Não'}
+                      </span>
+                    </td>
+
+                    <td
+                      style={{
+                        padding: '18px 16px',
+                        borderBottom: '1px solid #edf0f2',
+                        verticalAlign: 'middle',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'flex-end',
+                          gap: 16,
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => editContact(contact)}
+                          style={{
+                            padding: 0,
+                            border: 0,
+                            background: 'transparent',
+                            color: '#536069',
+                            cursor: 'pointer',
+                            fontSize: 14,
+                          }}
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => deleteContact(contact.id)}
+                          style={{
+                            padding: 0,
+                            border: 0,
+                            background: 'transparent',
+                            color: '#536069',
+                            cursor: 'pointer',
+                            fontSize: 14,
+                          }}
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -356,7 +547,6 @@ export default function ContactManager() {
       >
         <form onSubmit={saveContact}>
           <div className="form-grid">
-
             <label className="full">
               Empresa
 
@@ -372,15 +562,10 @@ export default function ContactManager() {
                 }
                 required
               >
-                <option value="">
-                  Selecione
-                </option>
+                <option value="">Selecione</option>
 
                 {companies.map((company) => (
-                  <option
-                    key={company.id}
-                    value={company.id}
-                  >
+                  <option key={company.id} value={company.id}>
                     {companyName(company)}
                   </option>
                 ))}
@@ -472,7 +657,6 @@ export default function ContactManager() {
 
               Este contato é um decisor
             </label>
-
           </div>
 
           <div
