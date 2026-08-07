@@ -1,3 +1,118 @@
-useEffect(() => {
-  void load();
-}, []);
+'use client';
+
+import AppShell from '@/components/AppShell';
+import { api } from '@/lib/api';
+import { Opportunity } from '@/lib/types';
+import { useEffect, useState } from 'react';
+import { Loading, ErrorBox } from '@/components/State';
+
+const statuses = [
+  'Identificada',
+  'Em análise',
+  'Contato iniciado',
+  'Proposta enviada',
+  'Negociação',
+  'Ganha',
+];
+
+const money = (n: number) =>
+  new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    notation: 'compact',
+  }).format(n || 0);
+
+export default function Pipeline() {
+  const [items, setItems] = useState<Opportunity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+
+  const load = () =>
+    api<{ data: Opportunity[] }>('/opportunities?per_page=300')
+      .then((r) => setItems(r.data))
+      .catch((e) => setErr(e.message))
+      .finally(() => setLoading(false));
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  async function move(id: number, status: string) {
+    const old = items;
+
+    setItems(items.map((x) => (x.id === id ? { ...x, status } : x)));
+
+    try {
+      await api(`/opportunities/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+    } catch (e: any) {
+      setItems(old);
+      alert(e.message);
+    }
+  }
+
+  return (
+    <AppShell>
+      <div className="title-row">
+        <div>
+          <span className="eyebrow">PIPELINE VISUAL</span>
+          <h1>Kanban comercial</h1>
+          <p>Arraste as oportunidades para atualizar a fase do negócio.</p>
+        </div>
+
+        <a className="btn primary" href="/oportunidades">
+          + Nova oportunidade
+        </a>
+      </div>
+
+      {err ? (
+        <ErrorBox message={err} />
+      ) : loading ? (
+        <Loading />
+      ) : (
+        <div className="kanban">
+          {statuses.map((status) => {
+            const list = items.filter((x) => x.status === status);
+
+            return (
+              <section
+                className="column"
+                key={status}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => move(Number(e.dataTransfer.getData('id')), status)}
+              >
+                <div className="column-head">
+                  <h3>{status}</h3>
+                  <span>{list.length}</span>
+                </div>
+
+                {list.map((x) => (
+                  <article
+                    draggable
+                    onDragStart={(e) =>
+                      e.dataTransfer.setData('id', String(x.id))
+                    }
+                    className="deal"
+                    key={x.id}
+                  >
+                    <div className="deal-score">{x.score}</div>
+                    <strong>{x.title}</strong>
+                    <small>{x.company?.trade_name}</small>
+
+                    <div className="deal-bottom">
+                      <b>{money(Number(x.potential_value))}</b>
+                      <span>{x.probability}%</span>
+                    </div>
+                  </article>
+                ))}
+              </section>
+            );
+          })}
+        </div>
+      )}
+    </AppShell>
+  );
+}
+
