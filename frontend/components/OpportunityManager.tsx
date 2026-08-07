@@ -263,8 +263,8 @@ export default function OpportunityManager() {
       ) : loading ? (
         <Loading />
       ) : !filtered.length ? (
-        <Empty message="Nenhuma oportunidade encontrada." />
-      ) : (
+<Empty label="Nenhuma oportunidade encontrada." /> 
+    ) : (
         <div className="card panel">
           <div className="table-wrap">
             <table className="table">
