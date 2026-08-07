@@ -1,47 +1,12 @@
 'use client';
 
 import AppShell from '@/components/AppShell';
-import SimpleEntityPage from '@/components/SimpleEntityPage';
+import EvidenceManager from '@/components/EvidenceManager';
 
 export default function Page() {
   return (
     <AppShell>
-      <SimpleEntityPage
-        title="Evidências"
-        subtitle="Fontes públicas que sustentam a inteligência comercial."
-        endpoint="/evidences"
-        columns={[
-          {
-            key: 'title',
-            label: 'Título',
-          },
-          {
-            key: 'company',
-            label: 'Empresa',
-            render: (x: any) => x.company?.trade_name || '—',
-          },
-          {
-            key: 'source_type',
-            label: 'Fonte',
-          },
-          {
-            key: 'published_at',
-            label: 'Publicação',
-            render: (x: any) =>
-              x.published_at
-                ? new Date(x.published_at).toLocaleDateString('pt-BR')
-                : '—',
-          },
-          {
-            key: 'confidence',
-            label: 'Confiança',
-          },
-          {
-            key: 'score_impact',
-            label: 'Impacto',
-          },
-        ]}
-      />
+      <EvidenceManager />
     </AppShell>
   );
 }
