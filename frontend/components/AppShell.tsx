@@ -131,10 +131,10 @@ export default function AppShell({
       <aside className="sidebar">
         <div className="brand">
           <img
-            src="/logo-rbek-white.png"
-            alt="R.BEK Engenharia"
-            className="brand-logo"
-          />
+  src="/Logo R.bek_branco.png"
+  alt="R.BEK Engenharia"
+  className="brand-logo"
+/>
         </div>
 
         <nav className="nav">
