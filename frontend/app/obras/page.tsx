@@ -1,50 +1,12 @@
 'use client';
 
 import AppShell from '@/components/AppShell';
-import SimpleEntityPage from '@/components/SimpleEntityPage';
+import WorkManager from '@/components/WorkManager';
 
 export default function Page() {
   return (
     <AppShell>
-      <SimpleEntityPage
-        title="Obras e projetos"
-        subtitle="Projetos de engenharia e infraestrutura monitorados."
-        endpoint="/works"
-        columns={[
-          {
-            key: 'name',
-            label: 'Obra',
-          },
-          {
-            key: 'company',
-            label: 'Empresa',
-            render: (x: any) => x.company?.trade_name || '—',
-          },
-          {
-            key: 'type',
-            label: 'Tipo',
-          },
-          {
-            key: 'city',
-            label: 'Cidade',
-          },
-          {
-            key: 'status',
-            label: 'Status',
-          },
-          {
-            key: 'contract_value',
-            label: 'Valor',
-            render: (x: any) =>
-              x.contract_value
-                ? new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  }).format(Number(x.contract_value))
-                : '—',
-          },
-        ]}
-      />
+      <WorkManager />
     </AppShell>
   );
 }
