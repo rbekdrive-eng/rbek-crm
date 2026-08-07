@@ -89,7 +89,7 @@ export default function ContactManager() {
   }
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   const filtered = useMemo(() => {
@@ -181,7 +181,10 @@ export default function ContactManager() {
         });
       }
 
-      closeModal();
+      setOpen(false);
+      setEditing(null);
+      setForm(emptyForm);
+
       await load();
     } catch (error: any) {
       alert(error?.message || 'Não foi possível salvar o contato.');
@@ -212,7 +215,9 @@ export default function ContactManager() {
     <>
       <div className="page-header">
         <div>
-          <div className="eyebrow">INTELIGÊNCIA COMERCIAL</div>
+          <div className="eyebrow">
+            INTELIGÊNCIA COMERCIAL
+          </div>
 
           <h1>Contatos e decisores</h1>
 
@@ -249,7 +254,7 @@ export default function ContactManager() {
       ) : loading ? (
         <Loading />
       ) : !filtered.length ? (
-        <Empty text="Nenhum contato encontrado." />
+        <Empty label="Nenhum contato encontrado." />
       ) : (
         <div className="table-card">
           <table>
@@ -272,9 +277,13 @@ export default function ContactManager() {
                     <strong>{contact.name}</strong>
                   </td>
 
-                  <td>{companyName(contact.company)}</td>
+                  <td>
+                    {companyName(contact.company)}
+                  </td>
 
-                  <td>{contact.role || '—'}</td>
+                  <td>
+                    {contact.role || '—'}
+                  </td>
 
                   <td>
                     {contact.email ? (
@@ -347,6 +356,7 @@ export default function ContactManager() {
       >
         <form onSubmit={saveContact}>
           <div className="form-grid">
+
             <label className="full">
               Empresa
 
@@ -362,7 +372,9 @@ export default function ContactManager() {
                 }
                 required
               >
-                <option value="">Selecione</option>
+                <option value="">
+                  Selecione
+                </option>
 
                 {companies.map((company) => (
                   <option
@@ -460,6 +472,7 @@ export default function ContactManager() {
 
               Este contato é um decisor
             </label>
+
           </div>
 
           <div
