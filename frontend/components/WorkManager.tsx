@@ -28,7 +28,7 @@ type Work = {
 };
 
 type WorkForm = {
-  company_id: string;
+  company_id: number | '';
   external_id: string;
   name: string;
   type: string;
@@ -41,6 +41,23 @@ type WorkForm = {
   notes: string;
 };
 
+const statuses = [
+  'Monitoramento',
+  'Planejamento',
+  'Licitação',
+  'Contratação',
+  'Em andamento',
+  'Paralisada',
+  'Concluída',
+];
+
+const potentials = [
+  'Baixo',
+  'Médio',
+  'Alto',
+  'Estratégico',
+];
+
 const emptyForm: WorkForm = {
   company_id: '',
   external_id: '',
@@ -50,31 +67,33 @@ const emptyForm: WorkForm = {
   city: '',
   state_country: '',
   contract_value: '',
-  status: '',
-  potential: '',
+  status: 'Monitoramento',
+  potential: 'Médio',
   notes: '',
 };
 
-function getList<T>(response: any): T[] {
-  const data = response?.data ?? response;
+function extractList<T>(response: any): T[] {
+  const data =
+    response?.data?.data ??
+    response?.data ??
+    response ??
+    [];
 
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (Array.isArray(data?.data)) {
-    return data.data;
-  }
-
-  return [];
+  return Array.isArray(data) ? data : [];
 }
 
 function companyName(company?: Company | null) {
-  return company?.trade_name || company?.legal_name || '—';
+  if (!company) return '—';
+
+  return company.trade_name || company.legal_name || '—';
 }
 
 function formatMoney(value?: string | number | null) {
-  if (value === null || value === undefined || value === '') {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ''
+  ) {
     return '—';
   }
 
@@ -90,30 +109,102 @@ function formatMoney(value?: string | number | null) {
   }).format(number);
 }
 
+function statusStyle(status?: string | null) {
+  if (status === 'Concluída') {
+    return {
+      background: '#e7f6eb',
+      color: '#25733b',
+    };
+  }
+
+  if (status === 'Em andamento') {
+    return {
+      background: '#fff4df',
+      color: '#936117',
+    };
+  }
+
+  if (status === 'Paralisada') {
+    return {
+      background: '#f7ecec',
+      color: '#914848',
+    };
+  }
+
+  if (status === 'Licitação') {
+    return {
+      background: '#fff8e8',
+      color: '#8c671f',
+    };
+  }
+
+  return {
+    background: '#eef0f1',
+    color: '#555a5c',
+  };
+}
+
+function potentialStyle(potential?: string | null) {
+  if (potential === 'Estratégico') {
+    return {
+      background: '#fff0cf',
+      color: '#8a5a0e',
+    };
+  }
+
+  if (potential === 'Alto') {
+    return {
+      background: '#fff4df',
+      color: '#936117',
+    };
+  }
+
+  if (potential === 'Médio') {
+    return {
+      background: '#eef0f1',
+      color: '#555a5c',
+    };
+  }
+
+  return {
+    background: '#f4f5f5',
+    color: '#747b7e',
+  };
+}
+
 export default function WorkManager() {
-  const [works, setWorks] = useState<Work[]>([]);
+  const [items, setItems] = useState<Work[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [err, setErr] = useState('');
 
-  const [search, setSearch] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Work | null>(null);
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<number | null>(null);
   const [form, setForm] = useState<WorkForm>(emptyForm);
 
-  async function loadWorks() {
-    setLoading(true);
-    setError('');
-
+  async function load() {
     try {
-      const response = await api.get('/works');
-      setWorks(getList<Work>(response));
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.message ||
-          err?.message ||
+      setLoading(true);
+      setErr('');
+
+      const [worksResponse, companiesResponse] =
+        await Promise.all([
+          api<any>('/works?per_page=300'),
+          api<any>('/companies?per_page=300'),
+        ]);
+
+      setItems(extractList<Work>(worksResponse));
+      setCompanies(
+        extractList<Company>(companiesResponse)
+      );
+    } catch (error: any) {
+      setErr(
+        error?.message ||
           'Não foi possível carregar as obras.'
       );
     } finally {
@@ -121,28 +212,26 @@ export default function WorkManager() {
     }
   }
 
-  async function loadCompanies() {
-    try {
-      const response = await api.get('/companies');
-      setCompanies(getList<Company>(response));
-    } catch {
-      setCompanies([]);
-    }
-  }
-
   useEffect(() => {
-    void loadWorks();
-    void loadCompanies();
+    void load();
   }, []);
 
   const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const search = query.trim().toLowerCase();
 
-    if (!term) {
-      return works;
-    }
+    return items.filter((work) => {
+      const matchesStatus =
+        !statusFilter ||
+        work.status === statusFilter;
 
-    return works.filter((work) => {
+      if (!matchesStatus) {
+        return false;
+      }
+
+      if (!search) {
+        return true;
+      }
+
       const content = [
         work.name,
         work.external_id,
@@ -152,28 +241,45 @@ export default function WorkManager() {
         work.state_country,
         work.status,
         work.potential,
+        work.notes,
         companyName(work.company),
       ]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
 
-      return content.includes(term);
+      return content.includes(search);
     });
-  }, [works, search]);
+  }, [items, query, statusFilter]);
+
+  const totalValue = useMemo(() => {
+    return items.reduce(
+      (total, work) =>
+        total + Number(work.contract_value || 0),
+      0
+    );
+  }, [items]);
+
+  const strategicCount = useMemo(() => {
+    return items.filter(
+      (work) =>
+        work.potential === 'Alto' ||
+        work.potential === 'Estratégico'
+    ).length;
+  }, [items]);
 
   function openCreate() {
     setEditing(null);
     setForm(emptyForm);
-    setError('');
-    setModalOpen(true);
+    setErr('');
+    setOpen(true);
   }
 
   function openEdit(work: Work) {
-    setEditing(work);
+    setEditing(work.id);
 
     setForm({
-      company_id: work.company_id ? String(work.company_id) : '',
+      company_id: work.company_id || '',
       external_id: work.external_id || '',
       name: work.name || '',
       type: work.type || '',
@@ -185,117 +291,127 @@ export default function WorkManager() {
         work.contract_value !== undefined
           ? String(work.contract_value)
           : '',
-      status: work.status || '',
-      potential: work.potential || '',
+      status:
+        work.status || 'Monitoramento',
+      potential:
+        work.potential || 'Médio',
       notes: work.notes || '',
     });
 
-    setError('');
-    setModalOpen(true);
+    setErr('');
+    setOpen(true);
   }
 
   function closeModal() {
-    if (saving) {
-      return;
-    }
+    if (saving) return;
 
-    setModalOpen(false);
+    setOpen(false);
     setEditing(null);
     setForm(emptyForm);
+    setErr('');
   }
 
-  function updateField<K extends keyof WorkForm>(
-    field: K,
-    value: WorkForm[K]
+  async function saveWork(
+    event: FormEvent<HTMLFormElement>
   ) {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!form.name.trim()) {
-      setError('Informe o nome da obra.');
+      setErr('Informe o nome da obra.');
       return;
     }
 
-    setSaving(true);
-    setError('');
-
-    const payload = {
-      company_id: form.company_id ? Number(form.company_id) : null,
-      external_id: form.external_id.trim() || null,
-      name: form.name.trim(),
-      type: form.type.trim() || null,
-      contractor: form.contractor.trim() || null,
-      city: form.city.trim() || null,
-      state_country: form.state_country.trim() || null,
-      contract_value: form.contract_value
-        ? Number(form.contract_value.replace(',', '.'))
-        : null,
-      status: form.status.trim() || null,
-      potential: form.potential.trim() || null,
-      notes: form.notes.trim() || null,
-    };
-
     try {
+      setSaving(true);
+      setErr('');
+
+      const payload = {
+        company_id: form.company_id
+          ? Number(form.company_id)
+          : null,
+
+        external_id:
+          form.external_id.trim() || null,
+
+        name: form.name.trim(),
+
+        type:
+          form.type.trim() || null,
+
+        contractor:
+          form.contractor.trim() || null,
+
+        city:
+          form.city.trim() || null,
+
+        state_country:
+          form.state_country.trim() || null,
+
+        contract_value:
+          form.contract_value !== ''
+            ? Number(
+                form.contract_value.replace(
+                  ',',
+                  '.'
+                )
+              )
+            : null,
+
+        status:
+          form.status || null,
+
+        potential:
+          form.potential || null,
+
+        notes:
+          form.notes.trim() || null,
+      };
+
       if (editing) {
-        await api.put(`/works/${editing.id}`, payload);
+        await api(`/works/${editing}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
       } else {
-        await api.post('/works', payload);
+        await api('/works', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
       }
 
-      setModalOpen(false);
+      setOpen(false);
       setEditing(null);
       setForm(emptyForm);
 
-      await loadWorks();
-    } catch (err: any) {
-      const validationErrors = err?.response?.data?.errors;
-
-      if (validationErrors) {
-        const firstError = Object.values(validationErrors)
-          .flat()
-          .find(Boolean);
-
-        if (firstError) {
-          setError(String(firstError));
-        } else {
-          setError('Não foi possível salvar a obra.');
-        }
-      } else {
-        setError(
-          err?.response?.data?.message ||
-            err?.message ||
-            'Não foi possível salvar a obra.'
-        );
-      }
+      await load();
+    } catch (error: any) {
+      setErr(
+        error?.message ||
+          'Não foi possível salvar a obra.'
+      );
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleDelete(work: Work) {
+  async function deleteWork(work: Work) {
     const confirmed = window.confirm(
       `Deseja realmente excluir a obra "${work.name}"?`
     );
 
-    if (!confirmed) {
-      return;
-    }
-
-    setError('');
+    if (!confirmed) return;
 
     try {
-      await api.delete(`/works/${work.id}`);
-      await loadWorks();
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.message ||
-          err?.message ||
+      setErr('');
+
+      await api(`/works/${work.id}`, {
+        method: 'DELETE',
+      });
+
+      await load();
+    } catch (error: any) {
+      setErr(
+        error?.message ||
           'Não foi possível excluir a obra.'
       );
     }
@@ -303,13 +419,46 @@ export default function WorkManager() {
 
   return (
     <>
-      <div className="page-header">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 24,
+          marginBottom: 28,
+        }}
+      >
         <div>
-          <div className="eyebrow">INTELIGÊNCIA COMERCIAL</div>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: '0.12em',
+              color: '#c78310',
+              marginBottom: 8,
+            }}
+          >
+            ENGENHARIA E INFRAESTRUTURA
+          </div>
 
-          <h1>Obras e projetos</h1>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 34,
+              lineHeight: 1.15,
+              color: '#202b33',
+            }}
+          >
+            Obras e projetos
+          </h1>
 
-          <p>
+          <p
+            style={{
+              margin: '10px 0 0',
+              fontSize: 18,
+              color: '#6d7479',
+            }}
+          >
             Projetos de engenharia e infraestrutura monitorados.
           </p>
         </div>
@@ -318,6 +467,12 @@ export default function WorkManager() {
           type="button"
           className="btn primary"
           onClick={openCreate}
+          style={{
+            flexShrink: 0,
+            minHeight: 48,
+            paddingLeft: 22,
+            paddingRight: 22,
+          }}
         >
           + Nova obra
         </button>
@@ -325,44 +480,136 @@ export default function WorkManager() {
 
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          display: 'grid',
+          gridTemplateColumns:
+            'repeat(3, minmax(0, 1fr))',
           gap: 16,
-          marginBottom: 20,
+          maxWidth: 820,
+          marginBottom: 22,
         }}
       >
-        <input
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Buscar obra, empresa, cidade, tipo..."
+        <div style={metricCard}>
+          <span style={metricLabel}>
+            Obras monitoradas
+          </span>
+
+          <strong style={metricNumber}>
+            {items.length}
+          </strong>
+        </div>
+
+        <div style={metricCard}>
+          <span style={metricLabel}>
+            Alto potencial
+          </span>
+
+          <strong style={metricNumber}>
+            {strategicCount}
+          </strong>
+        </div>
+
+        <div style={metricCard}>
+          <span style={metricLabel}>
+            Valor monitorado
+          </span>
+
+          <strong
+            style={{
+              ...metricNumber,
+              fontSize: 21,
+            }}
+          >
+            {formatMoney(totalValue)}
+          </strong>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 16,
+          marginBottom: 18,
+        }}
+      >
+        <div
           style={{
+            display: 'flex',
+            gap: 12,
             width: '100%',
-            maxWidth: 520,
-            minHeight: 48,
-            padding: '0 16px',
-            border: '1px solid #d9dee3',
-            borderRadius: 10,
-            background: '#fff',
-            fontSize: 16,
-            outline: 'none',
+            maxWidth: 760,
           }}
-        />
+        >
+          <input
+            type="search"
+            value={query}
+            onChange={(event) =>
+              setQuery(event.target.value)
+            }
+            placeholder="Buscar obra, empresa, cidade ou construtora..."
+            style={{
+              width: '100%',
+              minHeight: 48,
+              padding: '0 16px',
+              border:
+                '1px solid #d9dee3',
+              borderRadius: 10,
+              background: '#fff',
+              fontSize: 16,
+              outline: 'none',
+            }}
+          />
+
+          <select
+            value={statusFilter}
+            onChange={(event) =>
+              setStatusFilter(
+                event.target.value
+              )
+            }
+            style={{
+              minWidth: 190,
+              minHeight: 48,
+              padding: '0 12px',
+              border:
+                '1px solid #d9dee3',
+              borderRadius: 10,
+              background: '#fff',
+              fontSize: 15,
+            }}
+          >
+            <option value="">
+              Todos os status
+            </option>
+
+            {statuses.map((status) => (
+              <option
+                key={status}
+                value={status}
+              >
+                {status}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <span
           style={{
             color: '#6b7280',
             whiteSpace: 'nowrap',
+            fontSize: 14,
           }}
         >
           {filtered.length}{' '}
-          {filtered.length === 1 ? 'obra' : 'obras'}
+          {filtered.length === 1
+            ? 'obra'
+            : 'obras'}
         </span>
       </div>
 
-      {error && !modalOpen ? (
-        <ErrorBox message={error} />
+      {err && !open ? (
+        <ErrorBox message={err} />
       ) : null}
 
       {loading ? (
@@ -373,7 +620,8 @@ export default function WorkManager() {
         <div
           style={{
             background: '#fff',
-            border: '1px solid #dde2e6',
+            border:
+              '1px solid #dde2e6',
             borderRadius: 18,
             overflowX: 'auto',
           }}
@@ -381,298 +629,451 @@ export default function WorkManager() {
           <table
             style={{
               width: '100%',
+              minWidth: 1150,
               borderCollapse: 'collapse',
-              minWidth: 1050,
             }}
           >
             <thead>
               <tr
                 style={{
-                  borderBottom: '1px solid #e5e7eb',
+                  borderBottom:
+                    '1px solid #e5e7eb',
                 }}
               >
-                <th style={headerStyle}>OBRA</th>
-                <th style={headerStyle}>EMPRESA</th>
-                <th style={headerStyle}>TIPO</th>
-                <th style={headerStyle}>CONTRATANTE</th>
-                <th style={headerStyle}>LOCAL</th>
-                <th style={headerStyle}>VALOR</th>
-                <th style={headerStyle}>STATUS</th>
-                <th style={headerStyle}>POTENCIAL</th>
-                <th style={headerStyle}>AÇÕES</th>
+                <th style={headerStyle}>
+                  OBRA
+                </th>
+
+                <th style={headerStyle}>
+                  EMPRESA
+                </th>
+
+                <th style={headerStyle}>
+                  TIPO
+                </th>
+
+                <th style={headerStyle}>
+                  LOCALIZAÇÃO
+                </th>
+
+                <th style={headerStyle}>
+                  STATUS
+                </th>
+
+                <th style={headerStyle}>
+                  POTENCIAL
+                </th>
+
+                <th style={headerStyle}>
+                  VALOR
+                </th>
+
+                <th style={headerStyle}>
+                  AÇÕES
+                </th>
               </tr>
             </thead>
 
             <tbody>
-              {filtered.map((work) => (
-                <tr
-                  key={work.id}
-                  style={{
-                    borderBottom: '1px solid #eef0f2',
-                  }}
-                >
-                  <td style={cellStyle}>
-                    <strong>{work.name}</strong>
+              {filtered.map((work) => {
+                const statusBadge =
+                  statusStyle(work.status);
 
-                    {work.external_id ? (
-                      <div
+                const potentialBadge =
+                  potentialStyle(
+                    work.potential
+                  );
+
+                return (
+                  <tr
+                    key={work.id}
+                    style={{
+                      borderBottom:
+                        '1px solid #eef0f2',
+                    }}
+                  >
+                    <td style={cellStyle}>
+                      <strong>
+                        {work.name}
+                      </strong>
+
+                      {work.external_id ? (
+                        <div
+                          style={{
+                            marginTop: 4,
+                            color: '#7b838b',
+                            fontSize: 12,
+                          }}
+                        >
+                          {work.external_id}
+                        </div>
+                      ) : null}
+                    </td>
+
+                    <td style={cellStyle}>
+                      {companyName(
+                        work.company
+                      )}
+                    </td>
+
+                    <td style={cellStyle}>
+                      {work.type || '—'}
+                    </td>
+
+                    <td style={cellStyle}>
+                      {[
+                        work.city,
+                        work.state_country,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ') || '—'}
+                    </td>
+
+                    <td style={cellStyle}>
+                      <span
                         style={{
-                          marginTop: 4,
-                          color: '#7b838b',
-                          fontSize: 13,
+                          display:
+                            'inline-flex',
+                          padding:
+                            '6px 10px',
+                          borderRadius: 999,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          ...statusBadge,
                         }}
                       >
-                        {work.external_id}
-                      </div>
-                    ) : null}
-                  </td>
+                        {work.status || '—'}
+                      </span>
+                    </td>
 
-                  <td style={cellStyle}>
-                    {companyName(work.company)}
-                  </td>
+                    <td style={cellStyle}>
+                      <span
+                        style={{
+                          display:
+                            'inline-flex',
+                          padding:
+                            '6px 10px',
+                          borderRadius: 999,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          ...potentialBadge,
+                        }}
+                      >
+                        {work.potential ||
+                          '—'}
+                      </span>
+                    </td>
 
-                  <td style={cellStyle}>
-                    {work.type || '—'}
-                  </td>
-
-                  <td style={cellStyle}>
-                    {work.contractor || '—'}
-                  </td>
-
-                  <td style={cellStyle}>
-                    {[work.city, work.state_country]
-                      .filter(Boolean)
-                      .join(' / ') || '—'}
-                  </td>
-
-                  <td style={cellStyle}>
-                    {formatMoney(work.contract_value)}
-                  </td>
-
-                  <td style={cellStyle}>
-                    {work.status || '—'}
-                  </td>
-
-                  <td style={cellStyle}>
-                    {work.potential || '—'}
-                  </td>
-
-                  <td style={cellStyle}>
-                    <div
+                    <td
                       style={{
-                        display: 'flex',
-                        gap: 12,
-                        alignItems: 'center',
+                        ...cellStyle,
+                        fontWeight: 600,
+                        whiteSpace:
+                          'nowrap',
                       }}
                     >
-                      <button
-                        type="button"
-                        onClick={() => openEdit(work)}
-                        style={actionStyle}
-                      >
-                        Editar
-                      </button>
+                      {formatMoney(
+                        work.contract_value
+                      )}
+                    </td>
 
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(work)}
-                        style={actionStyle}
+                    <td style={cellStyle}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 14,
+                          whiteSpace:
+                            'nowrap',
+                        }}
                       >
-                        Excluir
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openEdit(work)
+                          }
+                          style={
+                            actionStyle
+                          }
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void deleteWork(
+                              work
+                            )
+                          }
+                          style={
+                            actionStyle
+                          }
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
       <Modal
-        open={modalOpen}
-        title={editing ? 'Editar obra' : 'Nova obra'}
+        open={open}
+        title={
+          editing
+            ? 'Editar obra'
+            : 'Nova obra'
+        }
         onClose={closeModal}
       >
-        <form onSubmit={handleSubmit}>
-          {error && modalOpen ? (
-            <div style={{ marginBottom: 16 }}>
-              <ErrorBox message={error} />
+        <form onSubmit={saveWork}>
+          {err && open ? (
+            <div
+              style={{
+                marginBottom: 16,
+              }}
+            >
+              <ErrorBox message={err} />
             </div>
           ) : null}
 
-          <div style={formGridStyle}>
-            <label style={fieldStyle}>
-              <span style={labelStyle}>Nome da obra *</span>
-
-              <input
-                value={form.name}
-                onChange={(event) =>
-                  updateField('name', event.target.value)
-                }
-                required
-                style={inputStyle}
-              />
-            </label>
-
-            <label style={fieldStyle}>
-              <span style={labelStyle}>Empresa</span>
+          <div className="form-grid">
+            <label className="full">
+              Empresa vinculada
 
               <select
                 value={form.company_id}
                 onChange={(event) =>
-                  updateField('company_id', event.target.value)
+                  setForm({
+                    ...form,
+                    company_id:
+                      event.target.value
+                        ? Number(
+                            event.target
+                              .value
+                          )
+                        : '',
+                  })
                 }
-                style={inputStyle}
               >
-                <option value="">Sem empresa vinculada</option>
+                <option value="">
+                  Sem empresa vinculada
+                </option>
 
-                {companies.map((company) => (
-                  <option
-                    key={company.id}
-                    value={company.id}
-                  >
-                    {companyName(company)}
-                  </option>
-                ))}
+                {companies.map(
+                  (company) => (
+                    <option
+                      key={company.id}
+                      value={company.id}
+                    >
+                      {companyName(
+                        company
+                      )}
+                    </option>
+                  )
+                )}
               </select>
             </label>
 
-            <label style={fieldStyle}>
-              <span style={labelStyle}>Código externo</span>
+            <label className="full">
+              Nome da obra
 
               <input
-                value={form.external_id}
+                type="text"
+                value={form.name}
                 onChange={(event) =>
-                  updateField('external_id', event.target.value)
+                  setForm({
+                    ...form,
+                    name: event.target
+                      .value,
+                  })
                 }
-                style={inputStyle}
+                required
               />
             </label>
 
-            <label style={fieldStyle}>
-              <span style={labelStyle}>Tipo</span>
+            <label>
+              Código / referência
 
               <input
+                type="text"
+                value={
+                  form.external_id
+                }
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    external_id:
+                      event.target
+                        .value,
+                  })
+                }
+              />
+            </label>
+
+            <label>
+              Tipo
+
+              <input
+                type="text"
                 value={form.type}
                 onChange={(event) =>
-                  updateField('type', event.target.value)
+                  setForm({
+                    ...form,
+                    type: event.target
+                      .value,
+                  })
                 }
-                placeholder="Ex.: Rodovia, indústria, ponte..."
-                style={inputStyle}
+                placeholder="Ex.: Obra rodoviária"
               />
             </label>
 
-            <label style={fieldStyle}>
-              <span style={labelStyle}>Contratante</span>
+            <label className="full">
+              Contratante / construtora
 
               <input
+                type="text"
                 value={form.contractor}
                 onChange={(event) =>
-                  updateField('contractor', event.target.value)
+                  setForm({
+                    ...form,
+                    contractor:
+                      event.target
+                        .value,
+                  })
                 }
-                style={inputStyle}
               />
             </label>
 
-            <label style={fieldStyle}>
-              <span style={labelStyle}>Cidade</span>
+            <label>
+              Cidade
 
               <input
+                type="text"
                 value={form.city}
                 onChange={(event) =>
-                  updateField('city', event.target.value)
+                  setForm({
+                    ...form,
+                    city: event.target
+                      .value,
+                  })
                 }
-                style={inputStyle}
               />
             </label>
 
-            <label style={fieldStyle}>
-              <span style={labelStyle}>Estado / País</span>
+            <label>
+              Estado / País
 
               <input
-                value={form.state_country}
+                type="text"
+                value={
+                  form.state_country
+                }
                 onChange={(event) =>
-                  updateField('state_country', event.target.value)
+                  setForm({
+                    ...form,
+                    state_country:
+                      event.target
+                        .value,
+                  })
                 }
                 placeholder="Ex.: PR / Brasil"
-                style={inputStyle}
               />
             </label>
 
-            <label style={fieldStyle}>
-              <span style={labelStyle}>Valor do contrato</span>
+            <label>
+              Status
+
+              <select
+                value={form.status}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    status:
+                      event.target
+                        .value,
+                  })
+                }
+              >
+                {statuses.map(
+                  (status) => (
+                    <option
+                      key={status}
+                      value={status}
+                    >
+                      {status}
+                    </option>
+                  )
+                )}
+              </select>
+            </label>
+
+            <label>
+              Potencial comercial
+
+              <select
+                value={form.potential}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    potential:
+                      event.target
+                        .value,
+                  })
+                }
+              >
+                {potentials.map(
+                  (potential) => (
+                    <option
+                      key={potential}
+                      value={potential}
+                    >
+                      {potential}
+                    </option>
+                  )
+                )}
+              </select>
+            </label>
+
+            <label className="full">
+              Valor do contrato
 
               <input
                 type="number"
                 min="0"
                 step="0.01"
-                value={form.contract_value}
-                onChange={(event) =>
-                  updateField('contract_value', event.target.value)
+                value={
+                  form.contract_value
                 }
-                style={inputStyle}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    contract_value:
+                      event.target
+                        .value,
+                  })
+                }
               />
             </label>
 
-            <label style={fieldStyle}>
-              <span style={labelStyle}>Status</span>
-
-              <select
-                value={form.status}
-                onChange={(event) =>
-                  updateField('status', event.target.value)
-                }
-                style={inputStyle}
-              >
-                <option value="">Selecione</option>
-                <option value="Monitoramento">Monitoramento</option>
-                <option value="Planejamento">Planejamento</option>
-                <option value="Licitação">Licitação</option>
-                <option value="Contratação">Contratação</option>
-                <option value="Em andamento">Em andamento</option>
-                <option value="Paralisada">Paralisada</option>
-                <option value="Concluída">Concluída</option>
-              </select>
-            </label>
-
-            <label style={fieldStyle}>
-              <span style={labelStyle}>Potencial comercial</span>
-
-              <select
-                value={form.potential}
-                onChange={(event) =>
-                  updateField('potential', event.target.value)
-                }
-                style={inputStyle}
-              >
-                <option value="">Selecione</option>
-                <option value="Baixo">Baixo</option>
-                <option value="Médio">Médio</option>
-                <option value="Alto">Alto</option>
-                <option value="Estratégico">Estratégico</option>
-              </select>
-            </label>
-
-            <label
-              style={{
-                ...fieldStyle,
-                gridColumn: '1 / -1',
-              }}
-            >
-              <span style={labelStyle}>Observações</span>
+            <label className="full">
+              Observações
 
               <textarea
+                rows={4}
                 value={form.notes}
                 onChange={(event) =>
-                  updateField('notes', event.target.value)
+                  setForm({
+                    ...form,
+                    notes:
+                      event.target
+                        .value,
+                  })
                 }
-                rows={5}
-                style={{
-                  ...inputStyle,
-                  paddingTop: 12,
-                  resize: 'vertical',
-                }}
               />
             </label>
           </div>
@@ -680,14 +1081,15 @@ export default function WorkManager() {
           <div
             style={{
               display: 'flex',
-              justifyContent: 'flex-end',
+              justifyContent:
+                'flex-end',
               gap: 12,
               marginTop: 24,
             }}
           >
             <button
               type="button"
-              className="btn"
+              className="btn light"
               onClick={closeModal}
               disabled={saving}
             >
@@ -712,8 +1114,28 @@ export default function WorkManager() {
   );
 }
 
-const headerStyle = {
+const metricCard = {
+  background: '#fff',
+  border: '1px solid #e0e4e7',
+  borderRadius: 14,
   padding: '16px 18px',
+};
+
+const metricLabel = {
+  display: 'block',
+  color: '#747b7e',
+  fontSize: 13,
+  marginBottom: 5,
+};
+
+const metricNumber = {
+  display: 'block',
+  fontSize: 25,
+  color: '#202b33',
+};
+
+const headerStyle = {
+  padding: '16px 15px',
   textAlign: 'left' as const,
   color: '#53606b',
   fontSize: 12,
@@ -722,10 +1144,10 @@ const headerStyle = {
 };
 
 const cellStyle = {
-  padding: '18px',
+  padding: '18px 15px',
   color: '#27313a',
   fontSize: 14,
-  verticalAlign: 'middle' as const,
+  verticalAlign: 'top' as const,
 };
 
 const actionStyle = {
@@ -735,34 +1157,4 @@ const actionStyle = {
   cursor: 'pointer',
   color: '#4b5563',
   fontSize: 14,
-};
-
-const formGridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-  gap: 16,
-};
-
-const fieldStyle = {
-  display: 'flex',
-  flexDirection: 'column' as const,
-  gap: 7,
-};
-
-const labelStyle = {
-  fontSize: 13,
-  fontWeight: 600,
-  color: '#374151',
-};
-
-const inputStyle = {
-  width: '100%',
-  minHeight: 44,
-  padding: '0 12px',
-  border: '1px solid #d7dce1',
-  borderRadius: 8,
-  background: '#fff',
-  color: '#222',
-  fontSize: 14,
-  boxSizing: 'border-box' as const,
 };
