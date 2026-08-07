@@ -1,39 +1,12 @@
 'use client';
 
 import AppShell from '@/components/AppShell';
-import SimpleEntityPage from '@/components/SimpleEntityPage';
+import ContactManager from '@/components/ContactManager';
 
 export default function Page() {
   return (
     <AppShell>
-      <SimpleEntityPage
-        title="Contatos e decisores"
-        subtitle="Pessoas-chave vinculadas às empresas monitoradas."
-        endpoint="/contacts"
-        columns={[
-          {
-            key: 'name',
-            label: 'Nome',
-          },
-          {
-            key: 'company',
-            label: 'Empresa',
-            render: (x: any) => x.company?.trade_name || '—',
-          },
-          {
-            key: 'role',
-            label: 'Cargo',
-          },
-          {
-            key: 'email',
-            label: 'E-mail',
-          },
-          {
-            key: 'phone',
-            label: 'Telefone',
-          },
-        ]}
-      />
+      <ContactManager />
     </AppShell>
   );
 }
